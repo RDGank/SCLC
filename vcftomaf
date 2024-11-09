@@ -21,12 +21,21 @@ for i in *reformated.vcf; do
 --ncbi-build GRCh38 --ncbi-build GRCh37 --vep-path /home/data/t100412/miniconda3/envs/wgs/bin --vep-data ~/vep_data --cache-version=101 --vep-forks 7
 done
 
+#true
+for i in *reformated.vcf; do
+   j=$i \
+   vcf2maf.pl --input-vcf /home/data/t100412/vcf2maf/vcf/$i --output-maf /home/data/t100412/vcf2maf/maf/$i.maf \
+  --ref-fasta /home/data/t100412/vcf2maf/hgfa/Homo_sapiens.GRCh38.dna_sm.primary_assembly.fa \
+--ncbi-build GRCh38 --ncbi-build GRCh37 --vep-path /home/data/t100412/miniconda3/envs/wgs/bin --vep-data ~/vep_data --cache-version=101 --vep-forks 7
+done
+
+
 
 for i in *reformated.vcf; do
    j=$i \
-   vcf2maf.pl --input-vcf /home/data/t100412/vcf2maf/vcf/$i --output-maf /home/data/t100412/vcf2maf/maf/$j.maf \
+   vcf2maf.pl --input-vcf /home/data/t100412/vcf2maf/vcf/$i --output-maf /home/data/t100412/vcf2maf/maf/$i.maf \
   --ref-fasta /home/data/t100412/vcf2maf/hgfa/Homo_sapiens.GRCh38.dna_sm.primary_assembly.fa \
---ncbi-build GRCh38 --ncbi-build GRCh37 --vep-path /home/data/t100412/miniconda3/envs/wgs/bin --vep-data ~/vep_data --cache-version=101 --vep-forks 7
+--ncbi-build GRCh38 --ncbi-build GRCh37 --inhibit-vep
 done
 
 
