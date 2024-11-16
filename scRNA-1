@@ -1,0 +1,140 @@
+library(Seurat)
+
+
+filelist<-list.files('D:/SCLC-scRNA/sclc')
+filelist<-filelist[-c(1:2)]
+filelist<-filelist[-c(72:74)]
+setwd('D:/SCLC-scRNA/sclc')
+
+for (i in filelist) {
+  data<-Read10X(data.dir = i)
+  sce1<-CreateSeuratObject(counts = data,
+                           project = i,
+                           min.cells = 3,
+                           min.features = 200
+  )
+  if(i==filelist[1]) sce<-sce1
+  if(i!=filelist[1]) sce<-merge(sce,sce1)
+  return(sce)
+}
+
+library(stringr)
+load(file = 'sce-SCLC-anno.RData')
+sce@meta.data$Samples<-sce@meta.data$orig.ident
+sce@meta.data$Samples<-gsub('1','',sce@meta.data$Samples)
+sce@meta.data$Samples<-gsub('2','',sce@meta.data$Samples)
+sce@meta.data$Samples<-gsub('3','',sce@meta.data$Samples)
+sce@meta.data$Samples<-gsub('4','',sce@meta.data$Samples)
+sce@meta.data$Samples<-gsub('5','',sce@meta.data$Samples)
+sce@meta.data$Samples<-gsub('6','',sce@meta.data$Samples)
+sce@meta.data$Samples<-gsub('7','',sce@meta.data$Samples)
+sce@meta.data$Samples<-gsub('8','',sce@meta.data$Samples)
+sce@meta.data$Samples<-gsub('9','',sce@meta.data$Samples)
+sce@meta.data$Samples<-gsub('0','',sce@meta.data$Samples)
+sce@meta.data$Samples<-gsub('P','',sce@meta.data$Samples)
+sce@meta.data$Samples<-gsub('_','',sce@meta.data$Samples)
+table(sce@meta.data$Samples)
+
+library(stringr)
+sce@meta.data$Samples<-str_replace(sce@meta.data$Samples,'LN','lmn')
+sce@meta.data$Samples<-str_replace(sce@meta.data$Samples,'T1','tumor')
+sce@meta.data$Samples<-str_replace(sce@meta.data$Samples,'T','tumor')
+sce@meta.data$Samples<-str_replace(sce@meta.data$Samples,'B','pbmc')
+sce@meta.data$Samples<-str_replace(sce@meta.data$Samples,'N','normal')
+sce@meta.data$Samples<-str_replace(sce@meta.data$Samples,'L','lmn')
+sce@meta.data$Samples<-str_replace(sce@meta.data$Samples,'lmn','LMN')
+sce@meta.data$Samples<-str_replace(sce@meta.data$Samples,'pbmc','PBMC')
+sce@meta.data$Samples<-str_replace(sce@meta.data$Samples,'tumor','Tumor')
+sce@meta.data$Samples<-str_replace(sce@meta.data$Samples,'lmn','Lmn')
+sce@meta.data$Samples<-str_replace(sce@meta.data$Samples,'normal','Normal')
+CellDimPlot(sce,group.by = 'Samples')
+#smoke
+sce@meta.data$smoke<-sce@meta.data$orig.ident
+sce@meta.data$smoke<-gsub('LN','',sce@meta.data$smoke)
+sce@meta.data$smoke<-gsub('T1','',sce@meta.data$smoke)
+sce@meta.data$smoke<-gsub('N','',sce@meta.data$smoke)
+sce@meta.data$smoke<-gsub('L','',sce@meta.data$smoke)
+sce@meta.data$smoke<-gsub('B','',sce@meta.data$smoke)
+sce@meta.data$smoke<-gsub('T','',sce@meta.data$smoke)
+sce@meta.data$smoke<-gsub('P','',sce@meta.data$smoke)
+sce@meta.data$smoke<-gsub('_','',sce@meta.data$smoke)
+
+smoke<-read.table(file = 'stage.txt',header = T,fill = T)
+table(sce@meta.data$smoke)
+for (i in smoke$no) {
+  if(sce@meta.data$smoke==i) 
+  {i<-as.numeric(i)
+    sce@meta.data$smoke<-smoke[i,2]}
+  return(sce)
+}
+colnames(smoke)[1]<-'smoke'
+smoke$smoke<-as.character(smoke)
+metam<-merge(meta,smoke,by='smoke')
+
+sce@meta.data<-inner_join(sce@meta.data,smoke,by = 'smoke')
+sce@meta.data$Smoker
+#smoke-freq
+smokef<-read.table(file = 'metaall.txt',header = T,fill = T)
+sce@meta.data$smoke_<-sce
+
+sce<-sce1
+sce<-AddMetaData(sce,metadata = smoke,col.name = 'smoke')
+sce@meta.data<-merge(sce@meta.data,smoke,by='smoke',all=F,all.y=F,all.x=F)
+meta<-sce@meta.data
+
+meta$smoke<-as.numeric(meta$smoke)
+smoke$smoke<-as.numeric(smoke$smoke)
+metan<-left_join(meta,smoke,by='smoke')
+metam<-merge(meta,smoke,all=F,by='smoke')
+
+meta1<-meta
+meta<-sce@meta.data
+meta$name<-rownames(meta)
+colnames(smokef)[1]<-'smoke'
+colnames(smokef)[2]<-'smoke_year'
+metam<-merge(meta,smokef,all=F,by='smoke')
+k<-metam$name%in%meta$name
+k<-duplicated(metam$name)
+table(k)
+metam<-metam[!duplicated(metam$name),]
+rownames(metam)<-metam$name
+sce@meta.data<-metam
+CellDimPlot(sce,group.by = 'Stage',theme_use = 'theme_blank')
+#smokef<-str_replace(smokef,' ','NA')
+save(sce,file = 'sce-SCLC-anno.RData')
+DotPlot(sce,features = 'EPCAM',assay = 'RNA')
+DimPlot(sce)
+
+DotPlot(sce,features = c('EPCAM'),group.by = 'RNA_snn_res.0.8')
+
+pdf(file = 'SCLC-1.pdf',height = 4,width = 6)
+CellDimPlot(sce,group.by = 'Samples')
+dev.off()
+
+pdf(file = 'SCLC-x.pdf',height = 6,width = 10)
+CellDimPlot(sce,group.by = 'seurat_clusters',label = T)
+dev.off()
+
+pdf(file = 'SCLC-dot.pdf',height = 15,width = 12)
+DotPlot(sce,features = c('EPCAM','KRT18','CD3D','NKG7','MS4A1','CD79A','LYZ','DCN','CLDN5'))
+dev.off()
+
+
+library(stringr)
+sce@meta.data$celltype<-sce@meta.data$seurat_clusters
+
+sce@meta.data$celltype<-str_replace(sce@meta.data$celltype,'15|17|19|28|30|31|32|34|36|40|41|45|46|48|49|51|52|55|58|59|62|67|68|69|71|72|65','Epithelial cells')
+sce@meta.data$celltype<-str_replace(sce@meta.data$celltype,'10|29|35|39|44|47|50|54','T/NK cells')
+sce@meta.data$celltype<-str_replace(sce@meta.data$celltype,'11|16|29|37|41|42|45|60','B cells')
+sce@meta.data$celltype<-str_replace(sce@meta.data$celltype,'12|13|14|18|20|21|22|23|24|27|38|43|33|53|57|61|66','Myeloid cells')
+sce@meta.data$celltype<-str_replace(sce@meta.data$celltype,'26|71|72','Fibroblasts')
+sce@meta.data$celltype<-str_replace(sce@meta.data$celltype,'25|56|63|64|70|73','Endothelial cells')
+sce@meta.data$celltype<-str_replace(sce@meta.data$celltype,'0|1|2|4|5|8|9','Epithelial cells')
+sce@meta.data$celltype<-str_replace(sce@meta.data$celltype,'3|6','Myeloid cells')
+sce@meta.data$celltype<-str_replace(sce@meta.data$celltype,'7','T/NK cells')
+#sce@meta.data$celltype<-str_replace(sce@meta.data$celltype,'','')
+#sce@meta.data$celltype<-str_replace(sce@meta.data$celltype,'','')
+
+pdf(file = 'SCLC-celltype.pdf',height = 3.5,width = 6)
+CellDimPlot(sce,group.by = 'celltype')
+dev.off()
